@@ -22,7 +22,7 @@ public sealed class SsrfHttpClientCacheTests : HostedUnitTest
     [Test]
     public async Task Get_should_cache_client(CancellationToken cancellationToken)
     {
-        string id = Guid.NewGuid().ToString();
+        var id = Guid.NewGuid().ToString();
 
         HttpClient first = await _cache.Get(id, cancellationToken);
         HttpClient second = await _cache.Get(id, cancellationToken);
@@ -33,7 +33,7 @@ public sealed class SsrfHttpClientCacheTests : HostedUnitTest
     [Test]
     public async Task Options_should_be_applied(CancellationToken cancellationToken)
     {
-        string id = Guid.NewGuid().ToString();
+        var id = Guid.NewGuid().ToString();
         TimeSpan timeout = TimeSpan.FromSeconds(17);
 
         HttpClient client = await _cache.Get(id, () => new HttpClientOptions { Timeout = timeout }, cancellationToken);
@@ -44,7 +44,7 @@ public sealed class SsrfHttpClientCacheTests : HostedUnitTest
     [Test]
     public async Task Remove_should_allow_client_to_be_recreated(CancellationToken cancellationToken)
     {
-        string id = Guid.NewGuid().ToString();
+        var id = Guid.NewGuid().ToString();
         HttpClient first = await _cache.Get(id, cancellationToken);
 
         await _cache.Remove(id);
@@ -63,7 +63,7 @@ public sealed class SsrfHttpClientCacheTests : HostedUnitTest
     [Arguments("localhost")]
     public async Task Requests_to_non_public_addresses_should_be_blocked(string host, CancellationToken cancellationToken)
     {
-        string id = Guid.NewGuid().ToString();
+        var id = Guid.NewGuid().ToString();
         HttpClient client = await _cache.Get(id, cancellationToken);
         var uri = new UriBuilder(Uri.UriSchemeHttp, host).Uri;
 
@@ -76,7 +76,7 @@ public sealed class SsrfHttpClientCacheTests : HostedUnitTest
     [Test]
     public async Task Proxy_configuration_should_be_rejected(CancellationToken cancellationToken)
     {
-        string id = Guid.NewGuid().ToString();
+        var id = Guid.NewGuid().ToString();
 
         Func<Task> get = async () => await _cache.Get(id, static () => new HttpClientOptions { UseProxy = true }, cancellationToken);
 
@@ -86,7 +86,7 @@ public sealed class SsrfHttpClientCacheTests : HostedUnitTest
     [Test]
     public async Task Custom_ssl_options_should_be_rejected(CancellationToken cancellationToken)
     {
-        string id = Guid.NewGuid().ToString();
+        var id = Guid.NewGuid().ToString();
 
         Func<Task> get = async () => await _cache.Get(id, static () => new HttpClientOptions { SslOptions = new() }, cancellationToken);
 
