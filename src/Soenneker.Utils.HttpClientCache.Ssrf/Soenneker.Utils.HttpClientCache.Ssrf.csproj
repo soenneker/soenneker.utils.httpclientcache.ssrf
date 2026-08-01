@@ -44,6 +44,6 @@
 
     <ItemGroup>
         <PackageReference Include="Soenneker.Utils.HttpClientCache" Version="4.0.1998" />
-        <PackageReference Include="Soenneker.Validators.IpAddresses.Ssrf" Version="4.0.3" />
+        <PackageReference Include="Soenneker.Validators.IpAddresses.Ssrf" Version="4.0.4" />
     </ItemGroup>
 </Project>
