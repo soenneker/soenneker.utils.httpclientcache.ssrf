@@ -93,4 +93,15 @@ public sealed class SsrfHttpClientCacheTests : HostedUnitTest
         await get.Should().ThrowAsync<NotSupportedException>();
     }
 
+    [Test]
+    public async Task Custom_primary_handler_configuration_should_be_rejected(CancellationToken cancellationToken)
+    {
+        var id = Guid.NewGuid().ToString();
+
+        Func<Task> get = async () => await _cache.Get(id,
+            static () => new HttpClientOptions { ModifyPrimaryHandler = static _ => { } }, cancellationToken);
+
+        await get.Should().ThrowAsync<NotSupportedException>();
+    }
+
 }

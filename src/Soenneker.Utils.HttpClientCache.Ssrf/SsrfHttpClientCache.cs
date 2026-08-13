@@ -1,15 +1,18 @@
 using System;
 using System.Collections.Concurrent;
+using System.IO;
+using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Soenneker.Atomics.ValueBools;
-using Soenneker.Dictionaries.SingletonKeys;
 using Soenneker.Dtos.HttpClientOptions;
+using Soenneker.Extensions.Task;
+using Soenneker.Extensions.ValueTask;
 using Soenneker.Utils.HttpClientCache.Abstract;
 using Soenneker.Utils.HttpClientCache.Ssrf.Abstract;
-using Soenneker.Utils.HttpClientCache.Ssrf.Dtos;
 using Soenneker.Validators.IpAddresses.Ssrf.Abstract;
 
 namespace Soenneker.Utils.HttpClientCache.Ssrf;
@@ -19,7 +22,6 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
 {
     private readonly IHttpClientCache _httpClientCache;
     private readonly ISsrfIpAddressValidator _ipAddressValidator;
-    private readonly SingletonKeyDictionary<HandlerKey, SsrfHttpClientHandler> _handlers;
     private readonly ConcurrentDictionary<string, byte> _clientIds = new(StringComparer.Ordinal);
     private readonly string _keyPrefix = $"{typeof(SsrfHttpClientCache).FullName}:{Guid.NewGuid():N}:";
 
@@ -29,7 +31,6 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
     {
         _httpClientCache = httpClientCache;
         _ipAddressValidator = ipAddressValidator;
-        _handlers = new SingletonKeyDictionary<HandlerKey, SsrfHttpClientHandler>(CreateHandler);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -46,11 +47,13 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(optionsFactory);
 
-        return _httpClientCache.Get(GetCacheKey(id), async token => CreateOptions(id, await optionsFactory(token)), cancellationToken);
+        return _httpClientCache.Get(GetCacheKey(id), async token => CreateOptions(id, await optionsFactory(token)),
+            cancellationToken);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ValueTask<HttpClient> Get(string id, Func<HttpClientOptions?> optionsFactory, CancellationToken cancellationToken = default)
+    public ValueTask<HttpClient> Get(string id, Func<HttpClientOptions?> optionsFactory,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(optionsFactory);
@@ -59,12 +62,14 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ValueTask<HttpClient> Get(string id, Func<ValueTask<HttpClientOptions?>> optionsFactory, CancellationToken cancellationToken = default)
+    public ValueTask<HttpClient> Get(string id, Func<ValueTask<HttpClientOptions?>> optionsFactory,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(optionsFactory);
 
-        return _httpClientCache.Get(GetCacheKey(id), async () => CreateOptions(id, await optionsFactory()), cancellationToken);
+        return _httpClientCache.Get(GetCacheKey(id), async () => CreateOptions(id, await optionsFactory()),
+            cancellationToken);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -80,14 +85,15 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask<HttpClient> Get<TState>(string id, TState state,
-        Func<TState, CancellationToken, ValueTask<HttpClientOptions?>> optionsFactory, CancellationToken cancellationToken = default)
-        where TState : notnull
+        Func<TState, CancellationToken, ValueTask<HttpClientOptions?>> optionsFactory,
+        CancellationToken cancellationToken = default) where TState : notnull
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(optionsFactory);
 
         return _httpClientCache.Get(GetCacheKey(id), (owner: this, id, state, optionsFactory),
-            static async (value, token) => value.owner.CreateOptions(value.id, await value.optionsFactory(value.state, token)), cancellationToken);
+            static async (value, token) =>
+                value.owner.CreateOptions(value.id, await value.optionsFactory(value.state, token)), cancellationToken);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -104,11 +110,13 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(optionsFactory);
 
-        return _httpClientCache.GetSync(GetCacheKey(id), async token => CreateOptions(id, await optionsFactory(token)), cancellationToken);
+        return _httpClientCache.GetSync(GetCacheKey(id), async token => CreateOptions(id, await optionsFactory(token)),
+            cancellationToken);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public HttpClient GetSync(string id, Func<HttpClientOptions?> optionsFactory, CancellationToken cancellationToken = default)
+    public HttpClient GetSync(string id, Func<HttpClientOptions?> optionsFactory,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(optionsFactory);
@@ -117,12 +125,14 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public HttpClient GetSync(string id, Func<ValueTask<HttpClientOptions?>> optionsFactory, CancellationToken cancellationToken = default)
+    public HttpClient GetSync(string id, Func<ValueTask<HttpClientOptions?>> optionsFactory,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(optionsFactory);
 
-        return _httpClientCache.GetSync(GetCacheKey(id), async () => CreateOptions(id, await optionsFactory()), cancellationToken);
+        return _httpClientCache.GetSync(GetCacheKey(id), async () => CreateOptions(id, await optionsFactory()),
+            cancellationToken);
     }
 
     public async ValueTask Remove(string id)
@@ -171,8 +181,6 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
                 RemoveClientTracking(id);
             }
         }
-
-        await _handlers.DisposeAsync();
     }
 
     public void Dispose()
@@ -191,22 +199,20 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
                 RemoveClientTracking(id);
             }
         }
-
-        _handlers.Dispose();
     }
 
     private HttpClientOptions CreateOptions(string id, HttpClientOptions? options)
     {
-        if (options?.HttpClientHandler is not null)
-            throw new NotSupportedException("A custom HttpClientHandler cannot be used by the SSRF-safe cache.");
+        if (options?.ModifyPrimaryHandler is not null)
+            throw new NotSupportedException(
+                "Custom primary-handler configuration cannot be used by the SSRF-safe cache.");
 
         if (options?.Proxy is not null || options?.UseProxy == true)
-            throw new NotSupportedException("Proxies cannot be used by the SSRF-safe cache because the destination connection cannot be validated.");
+            throw new NotSupportedException(
+                "Proxies cannot be used by the SSRF-safe cache because the destination connection cannot be validated.");
 
         if (options?.SslOptions is not null)
             throw new NotSupportedException("Custom SSL options cannot be used by the SSRF-safe cache.");
-
-        SsrfHttpClientHandler handler = _handlers.GetSync(CreateHandlerKey(options));
 
         if (!_clientIds.TryAdd(id, 0))
             throw new InvalidOperationException($"An HTTP client is already registered for cache key '{id}'.");
@@ -217,7 +223,21 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
             BaseAddress = options?.BaseAddress,
             DefaultRequestHeaders = options?.DefaultRequestHeaders,
             ModifyClient = options?.ModifyClient,
-            HttpClientHandler = handler
+            DelegatingHandlerFactories = options?.DelegatingHandlerFactories,
+            PooledConnectionLifetime = options?.PooledConnectionLifetime,
+            UseCookieContainer = options?.UseCookieContainer,
+            MaxConnectionsPerServer = options?.MaxConnectionsPerServer,
+            ConnectTimeout = options?.ConnectTimeout,
+            ResponseDrainTimeout = options?.ResponseDrainTimeout,
+            AllowAutoRedirect = options?.AllowAutoRedirect,
+            AutomaticDecompression = options?.AutomaticDecompression,
+            KeepAlivePingDelay = options?.KeepAlivePingDelay,
+            KeepAlivePingTimeout = options?.KeepAlivePingTimeout,
+            KeepAlivePingPolicy = options?.KeepAlivePingPolicy,
+            MaxResponseDrainSize = options?.MaxResponseDrainSize,
+            MaxResponseHeadersLength = options?.MaxResponseHeadersLength,
+            UseProxy = false,
+            ModifyPrimaryHandler = ConfigurePrimaryHandler
         };
     }
 
@@ -233,31 +253,44 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
         _clientIds.TryRemove(id, out _);
     }
 
-    private SsrfHttpClientHandler CreateHandler(HandlerKey key) =>
-        new(_ipAddressValidator, new HttpClientOptions
-        {
-            PooledConnectionLifetime = TimeSpan.FromTicks(key.PooledConnectionLifetimeTicks),
-            MaxConnectionsPerServer = key.MaxConnectionsPerServer,
-            UseCookieContainer = key.UseCookies,
-            ConnectTimeout = TimeSpan.FromTicks(key.ConnectTimeoutTicks),
-            ResponseDrainTimeout = key.ResponseDrainTimeoutTicks.HasValue ? TimeSpan.FromTicks(key.ResponseDrainTimeoutTicks.Value) : null,
-            AllowAutoRedirect = key.AllowAutoRedirect,
-            AutomaticDecompression = key.AutomaticDecompression,
-            KeepAlivePingDelay = key.KeepAlivePingDelayTicks.HasValue ? TimeSpan.FromTicks(key.KeepAlivePingDelayTicks.Value) : null,
-            KeepAlivePingTimeout = key.KeepAlivePingTimeoutTicks.HasValue ? TimeSpan.FromTicks(key.KeepAlivePingTimeoutTicks.Value) : null,
-            KeepAlivePingPolicy = key.KeepAlivePingPolicy,
-            MaxResponseDrainSize = key.MaxResponseDrainSize,
-            MaxResponseHeadersLength = key.MaxResponseHeadersLength
-        });
+    private void ConfigurePrimaryHandler(SocketsHttpHandler handler)
+    {
+        handler.UseProxy = false;
+        handler.ConnectCallback = Connect;
+    }
 
-    private static HandlerKey CreateHandlerKey(HttpClientOptions? options) =>
-        new(PooledConnectionLifetimeTicks: (options?.PooledConnectionLifetime ?? TimeSpan.FromMinutes(10)).Ticks,
-            MaxConnectionsPerServer: options?.MaxConnectionsPerServer ?? 40, UseCookies: options?.UseCookieContainer == true,
-            ConnectTimeoutTicks: (options?.ConnectTimeout ?? TimeSpan.FromSeconds(100)).Ticks,
-            ResponseDrainTimeoutTicks: options?.ResponseDrainTimeout?.Ticks, AllowAutoRedirect: options?.AllowAutoRedirect,
-            AutomaticDecompression: options?.AutomaticDecompression, KeepAlivePingDelayTicks: options?.KeepAlivePingDelay?.Ticks,
-            KeepAlivePingTimeoutTicks: options?.KeepAlivePingTimeout?.Ticks, KeepAlivePingPolicy: options?.KeepAlivePingPolicy,
-            MaxResponseDrainSize: options?.MaxResponseDrainSize, MaxResponseHeadersLength: options?.MaxResponseHeadersLength);
+    private async ValueTask<Stream> Connect(SocketsHttpConnectionContext context, CancellationToken cancellationToken)
+    {
+        DnsEndPoint endpoint = context.DnsEndPoint;
+        IPAddress[] addresses;
+
+        if (IPAddress.TryParse(endpoint.Host, out IPAddress? literalAddress))
+            addresses = [literalAddress];
+        else
+            addresses = await Dns.GetHostAddressesAsync(endpoint.Host, cancellationToken).NoSync();
+
+        if (addresses.Length == 0)
+            throw new HttpRequestException($"Host '{endpoint.Host}' did not resolve to an IP address.");
+
+        foreach (IPAddress address in addresses)
+        {
+            if (!_ipAddressValidator.Validate(address))
+                throw new HttpRequestException($"Connections to non-public IP address '{address}' are blocked.");
+        }
+
+        var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+
+        try
+        {
+            await socket.ConnectAsync(addresses, endpoint.Port, cancellationToken).NoSync();
+            return new NetworkStream(socket, ownsSocket: true);
+        }
+        catch
+        {
+            socket.Dispose();
+            throw;
+        }
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed.Read(), this);
