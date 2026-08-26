@@ -23,6 +23,7 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
     private readonly IHttpClientCache _httpClientCache;
     private readonly ISsrfIpAddressValidator _ipAddressValidator;
     private readonly ConcurrentDictionary<string, byte> _clientIds = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, string> _cacheKeys = new(StringComparer.Ordinal);
     private readonly string _keyPrefix = $"{typeof(SsrfHttpClientCache).FullName}:{Guid.NewGuid():N}:";
 
     private ValueAtomicBool _disposed;
@@ -37,7 +38,7 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
     public ValueTask<HttpClient> Get(string id, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
-        return _httpClientCache.Get(GetCacheKey(id), () => CreateOptions(id, null), cancellationToken);
+        return _httpClientCache.Get(GetCacheKey(id), (owner: this, id), static value => value.owner.CreateOptions(value.id, null), cancellationToken);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -47,8 +48,8 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(optionsFactory);
 
-        return _httpClientCache.Get(GetCacheKey(id), async token => CreateOptions(id, await optionsFactory(token)),
-            cancellationToken);
+        return _httpClientCache.Get(GetCacheKey(id), (owner: this, id, optionsFactory),
+            static async (value, token) => value.owner.CreateOptions(value.id, await value.optionsFactory(token)), cancellationToken);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -58,7 +59,8 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(optionsFactory);
 
-        return _httpClientCache.Get(GetCacheKey(id), () => CreateOptions(id, optionsFactory()), cancellationToken);
+        return _httpClientCache.Get(GetCacheKey(id), (owner: this, id, optionsFactory),
+            static value => value.owner.CreateOptions(value.id, value.optionsFactory()), cancellationToken);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -68,8 +70,8 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(optionsFactory);
 
-        return _httpClientCache.Get(GetCacheKey(id), async () => CreateOptions(id, await optionsFactory()),
-            cancellationToken);
+        return _httpClientCache.Get(GetCacheKey(id), (owner: this, id, optionsFactory),
+            static async (value, _) => value.owner.CreateOptions(value.id, await value.optionsFactory()), cancellationToken);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -245,12 +247,13 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
     private string GetCacheKey(string id)
     {
         ArgumentException.ThrowIfNullOrEmpty(id);
-        return _keyPrefix + id;
+        return _cacheKeys.GetOrAdd(id, static (key, prefix) => prefix + key, _keyPrefix);
     }
 
     private void RemoveClientTracking(string id)
     {
         _clientIds.TryRemove(id, out _);
+        _cacheKeys.TryRemove(id, out _);
     }
 
     private void ConfigurePrimaryHandler(SocketsHttpHandler handler)
