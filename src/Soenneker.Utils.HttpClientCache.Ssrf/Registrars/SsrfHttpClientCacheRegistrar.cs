@@ -14,6 +14,7 @@ public static class SsrfHttpClientCacheRegistrar
     /// <summary>
     /// Adds <see cref="ISsrfHttpClientCache"/> as a singleton service. <para/>
     /// </summary>
+    /// <returns>Adds <see cref="ISsrfHttpClientCache"/> as a singleton service. <para/>.</returns>
     public static IServiceCollection AddSsrfHttpClientCacheAsSingleton(this IServiceCollection services)
     {
         services.AddHttpClientCacheAsSingleton().AddSsrfIpAddressValidatorAsSingleton()
@@ -25,6 +26,7 @@ public static class SsrfHttpClientCacheRegistrar
     /// <summary>
     /// Adds <see cref="ISsrfHttpClientCache"/> as a scoped service. <para/>
     /// </summary>
+    /// <returns>Adds <see cref="ISsrfHttpClientCache"/> as a scoped service. <para/>.</returns>
     public static IServiceCollection AddSsrfHttpClientCacheAsScoped(this IServiceCollection services)
     {
         services.AddHttpClientCacheAsScoped().AddSsrfIpAddressValidatorAsScoped()

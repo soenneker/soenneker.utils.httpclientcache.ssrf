@@ -34,6 +34,8 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
         _ipAddressValidator = ipAddressValidator;
     }
 
+
+    /// <returns>Get.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask<HttpClient> Get(string id, CancellationToken cancellationToken = default)
     {
@@ -41,6 +43,8 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
         return _httpClientCache.Get(GetCacheKey(id), (owner: this, id), static value => value.owner.CreateOptions(value.id, null), cancellationToken);
     }
 
+
+    /// <returns>Get.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask<HttpClient> Get(string id, Func<CancellationToken, ValueTask<HttpClientOptions?>> optionsFactory,
         CancellationToken cancellationToken = default)
@@ -52,6 +56,8 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
             static async (value, token) => value.owner.CreateOptions(value.id, await value.optionsFactory(token)), cancellationToken);
     }
 
+
+    /// <returns>Get.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask<HttpClient> Get(string id, Func<HttpClientOptions?> optionsFactory,
         CancellationToken cancellationToken = default)
@@ -63,6 +69,8 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
             static value => value.owner.CreateOptions(value.id, value.optionsFactory()), cancellationToken);
     }
 
+
+    /// <returns>Get.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask<HttpClient> Get(string id, Func<ValueTask<HttpClientOptions?>> optionsFactory,
         CancellationToken cancellationToken = default)
@@ -74,6 +82,8 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
             static async (value, _) => value.owner.CreateOptions(value.id, await value.optionsFactory()), cancellationToken);
     }
 
+
+    /// <returns>Get.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask<HttpClient> Get<TState>(string id, TState state, Func<TState, HttpClientOptions?> optionsFactory,
         CancellationToken cancellationToken = default) where TState : notnull
@@ -85,6 +95,8 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
             static value => value.owner.CreateOptions(value.id, value.optionsFactory(value.state)), cancellationToken);
     }
 
+
+    /// <returns>Get.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask<HttpClient> Get<TState>(string id, TState state,
         Func<TState, CancellationToken, ValueTask<HttpClientOptions?>> optionsFactory,
@@ -98,6 +110,8 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
                 value.owner.CreateOptions(value.id, await value.optionsFactory(value.state, token)), cancellationToken);
     }
 
+
+    /// <returns>GetSync.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public HttpClient GetSync(string id, CancellationToken cancellationToken = default)
     {
@@ -105,6 +119,8 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
         return _httpClientCache.GetSync(GetCacheKey(id), () => CreateOptions(id, null), cancellationToken);
     }
 
+
+    /// <returns>GetSync.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public HttpClient GetSync(string id, Func<CancellationToken, ValueTask<HttpClientOptions?>> optionsFactory,
         CancellationToken cancellationToken = default)
@@ -116,6 +132,8 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
             cancellationToken);
     }
 
+
+    /// <returns>GetSync.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public HttpClient GetSync(string id, Func<HttpClientOptions?> optionsFactory,
         CancellationToken cancellationToken = default)
@@ -126,6 +144,8 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
         return _httpClientCache.GetSync(GetCacheKey(id), () => CreateOptions(id, optionsFactory()), cancellationToken);
     }
 
+
+    /// <returns>GetSync.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public HttpClient GetSync(string id, Func<ValueTask<HttpClientOptions?>> optionsFactory,
         CancellationToken cancellationToken = default)
@@ -137,6 +157,8 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
             cancellationToken);
     }
 
+
+    /// <returns>Remove.</returns>
     public async ValueTask Remove(string id)
     {
         ThrowIfDisposed();
