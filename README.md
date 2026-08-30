@@ -1,5 +1,6 @@
 [![](https://img.shields.io/nuget/v/soenneker.utils.httpclientcache.ssrf.svg?style=for-the-badge)](https://www.nuget.org/packages/soenneker.utils.httpclientcache.ssrf/)
 [![](https://img.shields.io/github/actions/workflow/status/soenneker/soenneker.utils.httpclientcache.ssrf/publish-package.yml?style=for-the-badge)](https://github.com/soenneker/soenneker.utils.httpclientcache.ssrf/actions/workflows/publish-package.yml)
+[![](https://img.shields.io/github/actions/workflow/status/soenneker/soenneker.utils.httpclientcache.ssrf/codeql.yml?style=for-the-badge&label=CodeQL)](https://github.com/soenneker/soenneker.utils.httpclientcache.ssrf/actions/workflows/codeql.yml)
 [![](https://img.shields.io/nuget/dt/soenneker.utils.httpclientcache.ssrf.svg?style=for-the-badge)](https://www.nuget.org/packages/soenneker.utils.httpclientcache.ssrf/)
 
 # ![](https://user-images.githubusercontent.com/4441470/224455560-91ed3ee7-f510-4041-a8d2-3fc093025112.png) Soenneker.Utils.HttpClientCache.Ssrf
@@ -46,7 +47,9 @@ public sealed class RemoteDocumentClient
 ```
 
 The cache implements the same API as `IHttpClientCache`, including synchronous and asynchronous
-option factories, cache removal, and disposal.
+option factories, cache removal, and disposal. An `id` identifies one cached client within this
+cache instance. Configure a given ID consistently: as with the underlying cache, the options
+factory is used only when that client is first created.
 
 ## Security behavior
 
@@ -59,6 +62,11 @@ option factories, cache removal, and disposal.
   reserved address ranges are blocked for IPv4 and IPv6.
 - Proxies, custom `HttpClientHandler` instances, and custom `SslOptions` are rejected because they
   expand or bypass the cache's controlled transport configuration.
+
+Validation happens when a connection is opened, not when `Get` returns a client. A hostname that
+resolves to any blocked address is rejected rather than falling back to another address. This
+protects outbound connections; it does not impose an application-level allowlist for hosts or
+paths.
 
 The caller owns neither the returned `HttpClient` nor its handler. Use `Remove`/`RemoveSync` when a
 cached client is no longer needed, or dispose the cache with its dependency-injection scope.

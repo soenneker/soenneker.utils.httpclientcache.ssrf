@@ -17,7 +17,6 @@ using Soenneker.Validators.IpAddresses.Ssrf.Abstract;
 
 namespace Soenneker.Utils.HttpClientCache.Ssrf;
 
-/// <inheritdoc cref="ISsrfHttpClientCache"/>
 public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
 {
     private readonly IHttpClientCache _httpClientCache;
@@ -238,8 +237,9 @@ public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
         if (options?.SslOptions is not null)
             throw new NotSupportedException("Custom SSL options cannot be used by the SSRF-safe cache.");
 
-        if (!_clientIds.TryAdd(id, 0))
-            throw new InvalidOperationException($"An HTTP client is already registered for cache key '{id}'.");
+        // Keep tracking idempotent so an underlying cache retry can invoke this factory again
+        // after a failed client creation without permanently poisoning the cache key.
+        _clientIds.TryAdd(id, 0);
 
         return new HttpClientOptions
         {
