@@ -17,6 +17,7 @@ using Soenneker.Validators.IpAddresses.Ssrf.Abstract;
 
 namespace Soenneker.Utils.HttpClientCache.Ssrf;
 
+/// <inheritdoc cref="ISsrfHttpClientCache" />
 public sealed class SsrfHttpClientCache : ISsrfHttpClientCache
 {
     private readonly IHttpClientCache _httpClientCache;
