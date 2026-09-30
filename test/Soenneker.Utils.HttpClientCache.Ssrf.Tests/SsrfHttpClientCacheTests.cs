@@ -20,7 +20,7 @@ public sealed class SsrfHttpClientCacheTests : HostedUnitTest
     }
 
     [Test]
-    public async Task Get_should_cache_client(CancellationToken cancellationToken)
+    public async ValueTask Get_should_cache_client(CancellationToken cancellationToken)
     {
         var id = Guid.NewGuid().ToString();
 
@@ -31,7 +31,7 @@ public sealed class SsrfHttpClientCacheTests : HostedUnitTest
     }
 
     [Test]
-    public async Task Options_should_be_applied(CancellationToken cancellationToken)
+    public async ValueTask Options_should_be_applied(CancellationToken cancellationToken)
     {
         var id = Guid.NewGuid().ToString();
         TimeSpan timeout = TimeSpan.FromSeconds(17);
@@ -42,7 +42,7 @@ public sealed class SsrfHttpClientCacheTests : HostedUnitTest
     }
 
     [Test]
-    public async Task Remove_should_allow_client_to_be_recreated(CancellationToken cancellationToken)
+    public async ValueTask Remove_should_allow_client_to_be_recreated(CancellationToken cancellationToken)
     {
         var id = Guid.NewGuid().ToString();
         HttpClient first = await _cache.Get(id, cancellationToken);
@@ -61,7 +61,7 @@ public sealed class SsrfHttpClientCacheTests : HostedUnitTest
     [Arguments("::1")]
     [Arguments("fc00::1")]
     [Arguments("localhost")]
-    public async Task Requests_to_non_public_addresses_should_be_blocked(string host, CancellationToken cancellationToken)
+    public async ValueTask Requests_to_non_public_addresses_should_be_blocked(string host, CancellationToken cancellationToken)
     {
         var id = Guid.NewGuid().ToString();
         HttpClient client = await _cache.Get(id, cancellationToken);
@@ -74,7 +74,7 @@ public sealed class SsrfHttpClientCacheTests : HostedUnitTest
     }
 
     [Test]
-    public async Task Proxy_configuration_should_be_rejected(CancellationToken cancellationToken)
+    public async ValueTask Proxy_configuration_should_be_rejected(CancellationToken cancellationToken)
     {
         var id = Guid.NewGuid().ToString();
 
@@ -84,7 +84,7 @@ public sealed class SsrfHttpClientCacheTests : HostedUnitTest
     }
 
     [Test]
-    public async Task Custom_ssl_options_should_be_rejected(CancellationToken cancellationToken)
+    public async ValueTask Custom_ssl_options_should_be_rejected(CancellationToken cancellationToken)
     {
         var id = Guid.NewGuid().ToString();
 
@@ -94,7 +94,7 @@ public sealed class SsrfHttpClientCacheTests : HostedUnitTest
     }
 
     [Test]
-    public async Task Custom_primary_handler_configuration_should_be_rejected(CancellationToken cancellationToken)
+    public async ValueTask Custom_primary_handler_configuration_should_be_rejected(CancellationToken cancellationToken)
     {
         var id = Guid.NewGuid().ToString();
 
